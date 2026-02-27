@@ -7,47 +7,56 @@ API_TOKEN = 'api_token'
 answ1 = "none"
 bot = telebot.TeleBot(api_token)
 
-def info(message):
-    bot.send_message(message.chat.id, """Я бот созданный для тех-поддержки,
-    Я     
-    """)
-
-def gen_inline_markup(rows):
+def gen_questions_markup():
     markup = types.InlineKeyboardMarkup()
-    markup.row_width = 1
-    for row in rows:
-        markup.add(types.InlineKeyboardButton(row, callback_data=row))
+    for q in questions:
+        markup.add(
+            types.InlineKeyboardButton(
+                q["question"],
+                callback_data=q["id"]   
+            )
+        )
     return markup
 
-def example():
-    @bot.message_handler(commands=['start'])
-    def send_welcome(message):
-        keyboard = gen_inline_markup(["Choice 1", "Choice 2"])
-        bot.send_message(message.chat.id, "Please choose:", reply_markup=keyboard)
-    # Handle button presses
-    @bot.callback_query_handler(func=lambda call: True)
-    def callback_handler(call):
-        if call.data == "Choice 1":
-            bot.answer_callback_query(call.id, "You clicked Choice 1")
-            bot.send_message(call.message.chat.id, "You selected option 1!")
-
-        elif call.data == "Choice 2":
-            bot.answer_callback_query(call.id, "You clicked Choice 2")
-            bot.send_message(call.message.chat.id, "You selected option 2!")
-
-@bot.message_handler(commands=['start'])
-def start(message):
-    question1 = gen_inline_markup(["Мне нужна помошь техподдержки", "Я хочу узнать что зачем этот бот"])
-    bot.send_message(message.chat.id, "Привет, я бот техподдержки сайта алиекспресс🤚")
-    bot.send_message(message.chat.id, "Выбирите чтоб вы потом напишу", reply_markup=question1)
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_handler(call):
-    if call.data == "Мне нужна помошь техподдержки":
-        bot.answer_callback_query(call.id, "You clicked Choice 1")
-        bot.send_message(call.message.chat.id, "You selected option 1!")
 
-    elif call.data == "Я хочу узнать что зачем этот бот":
-        bot.send_message(call.message.chat.id, "Что умеет этот бот:")
-        
+    if call.data == "help":
+        keyboard = gen_questions_markup()
+        bot.send_message(call.message.chat.id,
+                         "Выберите вопрос:",
+                         reply_markup=keyboard)
+
+    elif call.data == "about":
+            bot.send_message(call.message.chat.id, 
+            """Я бот созданный для тех-поддержки сайта алиекспресс.
+        "Я могу" --сказал бы я если я мог, но я просто примитивный телле-бот способствуйший отвечать на 
+        заданые вопросы.""")
+    else:
+        for q in questions:
+            if call.data == q["id"]:
+                bot.send_message(call.message.chat.id, q["answer"])
+
+@bot.message_handler(commands=['start'])
+def start(message):
+    markup = types.InlineKeyboardMarkup()
+    markup.add(
+        types.InlineKeyboardButton(
+            "Мне нужна помощь техподдержки",
+            callback_data="help"
+    )
+    )
+    markup.add(
+        types.InlineKeyboardButton(
+            "Я хочу узнать что это за бот",
+            callback_data="about"
+    )
+    )
+    bot.send_message(message.chat.id,
+                     "Привет, я бот техподдержки 🤚")
+    bot.send_message(message.chat.id,
+                     "Выберите что вы хотите узнать:",
+                     reply_markup=markup)
+
 bot.infinity_polling(none_stop=True)
